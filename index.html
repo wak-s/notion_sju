@@ -208,15 +208,6 @@ details.toggle ul { margin: 6px 0 0; padding-left: 26px; color: var(--ink); font
 .apply .btn-primary { width: 100%; margin-top: 10px; }
 .btn-primary:disabled { opacity: .45; cursor: not-allowed; filter: none; }
 
-/* 📌 신청 팝업 (Fillout 폼이 뜨는 창) */
-.modal { position: fixed; inset: 0; z-index: 40; background: rgba(35,33,30,.55); display: grid; place-items: center; padding: 16px; animation: blockIn .2s ease both; }
-.modal-box { background: var(--page); width: min(560px, 100%); height: min(620px, 88vh); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
-.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--line); font-weight: 800; font-size: 15px; }
-.modal-head button { background: none; border: 0; font-size: 22px; line-height: 1; cursor: pointer; color: var(--muted); padding: 2px 6px; }
-.modal iframe { flex: 1; width: 100%; border: 0; }
-.modal-foot { padding: 8px 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); text-align: center; }
-.modal-foot a { color: var(--muted); }
-
 @keyframes blockIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
@@ -253,15 +244,43 @@ details.toggle ul { margin: 6px 0 0; padding-left: 26px; color: var(--ink); font
 
 <script>
 /* ==========================================================
-   📌 수정 포인트 ③ 설정 — 신청 폼 링크
-   FORM_URL: Fillout 폼의 공개 주소. [신청하기]를 누르면 이 폼이 팝업으로 열리고,
-             이름·전화번호·결과가 숨은 칸(URL 파라미터)으로 함께 넘어가요.
+   📌 수정 포인트 ③ 설정 — 신청 저장
+   SIGNUP_API: [신청하기]를 누르면 이 주소(서버)로 신청이 가서 Supabase에 저장돼요.
+   CONSENT_VERSION: 동의 문구 버전 이름. 아래 동의 문구를 고치면 이 값도 바꿔 주세요.
+                    (영문 소문자·숫자·. _ - 만, 예: v2-20261101) 누가 어느 문구에 동의했는지 남아요.
    RETENTION: 개인정보 보유 기간 (동의 문구에 들어가요)
    ========================================================== */
 const CONFIG = {
-  FORM_URL: 'https://forms.fillout.com/t/de5pjs5Maqus',
+  SIGNUP_API: '/api/signup',
+  CONSENT_VERSION: 'v1-20261009',
   RETENTION: '신청일로부터 1년',
 };
+
+/* ==========================================================
+   유입 경로(UTM) 기억하기 — 손대지 않아도 돼요
+   주소에 ?utm_source=… 가 붙어 들어오면 이 탭에 기억해 두고, 신청할 때 같이 보내요.
+   주소에 UTM이 있으면 항상 그 값이 우선이고, 없을 때만 기억해 둔 값을 써요.
+   ========================================================== */
+const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+const ATTRIBUTION = (() => {
+  const store = {
+    get(k) { try { return JSON.parse(sessionStorage.getItem(k) || 'null'); } catch (_) { return null; } },
+    set(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (_) { /* 저장 불가 환경 */ } },
+  };
+  const params = new URLSearchParams(location.search);
+  const fromUrl = {};
+  UTM_KEYS.forEach(k => { const v = params.get(k); if (v) fromUrl[k] = v.slice(0, 100); });
+  let utm = Object.keys(fromUrl).length ? fromUrl : (store.get('sju_utm') || {});
+  if (Object.keys(fromUrl).length) store.set('sju_utm', fromUrl);
+
+  let ref = store.get('sju_ref');
+  if (ref === null) {
+    try { ref = document.referrer ? new URL(document.referrer).hostname : ''; } catch (_) { ref = ''; }
+    if (ref === location.hostname) ref = '';
+    store.set('sju_ref', ref);
+  }
+  return { utm, referrer_host: ref || null };
+})();
 
 /* ==========================================================
    📌 수정 포인트 ④ 질문과 선택지
@@ -604,12 +623,15 @@ function renderResult() {
         <details class="consent-detail">
           <summary>자세히 보기</summary>
           <ul>
-            <li>수집 항목: 이름, 전화번호, 테스트 결과와 답변</li>
+            <li>수집 항목: 이름, 전화번호, 테스트 결과와 답변, 방문 경로(어떤 링크로 들어왔는지)</li>
             <li>이용 목적: 맞춤 템플릿·행사 안내 및 신청 확인 연락</li>
             <li>보유 기간: ${esc(CONFIG.RETENTION)} (이후 파기)</li>
             <li>동의하지 않을 수 있으며, 이 경우 신청이 어려워요.</li>
           </ul>
         </details>
+        <!-- 봇 걸러내기용 숨은 칸 (사람에겐 안 보여요. 지우지 마세요) -->
+        <input id="inWebsite" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+               style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
         <button class="btn btn-primary" id="applyBtn" disabled>신청하기</button>
       </section>
 
@@ -642,7 +664,7 @@ function renderResult() {
       $err.textContent = '전화번호를 다시 확인해 주세요. (예: 010-1234-5678)';
       return;
     }
-    openApplyModal(r, $name.value.trim(), $phone.value);
+    submitSignup(r, $name.value.trim(), $phone.value, document.getElementById('inWebsite').value);
   };
 
   document.getElementById('saveBtn').onclick = () => downloadResult(r);
@@ -658,45 +680,67 @@ function formatPhone(v) {
 }
 
 /* ==========================================================
-   📌 수정 포인트 ⑧ Fillout으로 넘기는 값
-   왼쪽 이름(name, phone …)은 Fillout 폼의 URL 파라미터 이름과 같아야 해요.
-   노션 DB 칸과의 연결은 Fillout → Integrate → Notion에서 관리해요.
+   📌 수정 포인트 ⑧ 신청할 때 서버로 보내는 값
+   왼쪽 이름(name, phone …)은 Supabase sju_signups 표의 칸 이름과 같아요.
+   칸을 새로 만들려면 표에도 칸을 추가하고, api/signup.js 의 TEXT_FIELDS 에도 넣어야 저장돼요.
    ========================================================== */
-function buildApplyParams(r, name, phone) {
+function buildSignupPayload(r, name, phone, website) {
   const a = answers;
-  const pick = id => (id in a) ? QUESTIONS[id].options[a[id]].short : '-';
+  const pick = id => (id in a) ? QUESTIONS[id].options[a[id]].short : null;
   return {
     name,
     phone,
-    code: r.code,
-    result: r.name,
+    result_code: r.code,
+    result_name: r.name,
     category: r.category,
     track: TRACK_NAMES[a.q1],
     summary: order.map(id => `${QUESTIONS[id].log}: ${QUESTIONS[id].options[a[id]].short}`).join(' / '),
-    setup: r.wantSetup ? '예' : '아니오',
+    want_setup: !!r.wantSetup,
     level: pick('ind_level'),
     usage: pick('org_usage'),
     role: pick('mem_role'),
-    consent: '동의',
+    consent_privacy: true,
+    consent_version: CONFIG.CONSENT_VERSION,
+    ...ATTRIBUTION.utm,
+    referrer_host: ATTRIBUTION.referrer_host,
+    website, // 숨은 칸 (사람은 비어 있음)
   };
 }
 
-function openApplyModal(r, name, phone) {
-  const url = CONFIG.FORM_URL + '?' + new URLSearchParams(buildApplyParams(r, name, phone)).toString();
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.innerHTML = `
-    <div class="modal-box" role="dialog" aria-label="신청 확인">
-      <div class="modal-head"><span>신청 확인</span><button aria-label="닫기">×</button></div>
-      <iframe src="${esc(url)}" title="신청 폼" allow="clipboard-write"></iframe>
-      <div class="modal-foot">폼이 보이지 않으면 <a href="${esc(url)}" target="_blank" rel="noopener">새 창으로 열기</a></div>
-    </div>`;
-  const close = () => { modal.remove(); document.removeEventListener('keydown', onKey); };
-  const onKey = e => { if (e.key === 'Escape') close(); };
-  modal.querySelector('.modal-head button').onclick = close;
-  modal.addEventListener('click', e => { if (e.target === modal) close(); });
-  document.addEventListener('keydown', onKey);
-  document.body.appendChild(modal);
+/* ==========================================================
+   📌 수정 포인트 ⑨ 신청 결과 문구
+   ========================================================== */
+const SIGNUP_MESSAGES = {
+  sending: '보내는 중…',
+  doneNew: '신청 완료! 캠퍼스 리더가 확인하고 연락할게요 :)',
+  doneAgain: '이미 신청하셨네요. 방금 결과로 업데이트해 뒀어요!',
+  invalid_phone: '전화번호를 다시 확인해 주세요. (예: 010-1234-5678)',
+  too_many_requests: '잠시 후 다시 시도해 주세요.',
+  fallback: '신청이 저장되지 않았어요. 잠시 후 다시 시도해 주세요.',
+};
+
+async function submitSignup(r, name, phone, website) {
+  const $apply = document.getElementById('applyBtn');
+  const $err = document.getElementById('phoneErr');
+  const label = $apply.textContent;
+  $apply.disabled = true;
+  $apply.textContent = SIGNUP_MESSAGES.sending;
+  $err.textContent = '';
+  try {
+    const res = await fetch(CONFIG.SIGNUP_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildSignupPayload(r, name, phone, website)),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || 'fallback');
+    const box = document.querySelector('.apply');
+    box.innerHTML = `<h3>📮 ${esc(data.is_new ? SIGNUP_MESSAGES.doneNew : SIGNUP_MESSAGES.doneAgain)}</h3>`;
+  } catch (e) {
+    $err.textContent = SIGNUP_MESSAGES[e.message] || SIGNUP_MESSAGES.fallback;
+    $apply.textContent = label;
+    $apply.disabled = false;
+  }
 }
 
 /* ==========================================================
