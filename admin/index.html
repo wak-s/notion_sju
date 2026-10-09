@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>어드민 · 세종이네 노션</title>
+<link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+/* 📌 수정 포인트 ① 색·글꼴 */
+:root {
+  --page: #fbfaf8; --card: #ffffff; --ink: #23211e; --muted: #6f6a63; --line: #e7e3dd; --hover: #f3f0eb;
+  --accent: #7a2234; --accent-soft: #f3e3e5; --red: #c0392b; --green: #1e7a45;
+  --series-1: #2a78d6; --series-2: #eb6834;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #1a1a19; --card: #232321; --ink: #f2f0ec; --muted: #b3aea6; --line: #3a3835; --hover: #2c2b28;
+    --accent: #d77a8c; --accent-soft: #3b2328; --red: #e66767; --green: #4cc184;
+    --series-1: #3987e5; --series-2: #d95926;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.55 "Pretendard Variable", Pretendard, system-ui, sans-serif; }
+button, input, select { font: inherit; color: inherit; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+header h1 { font-size: 18px; margin: 0; font-weight: 800; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.spacer { flex: 1; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+.card h2 { font-size: 16px; margin: 0 0 4px; }
+.hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+label.f { display: block; margin-bottom: 12px; }
+label.f > span { display: block; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+input[type=text], input[type=password], input[type=date], select {
+  width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; background: var(--page);
+}
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn { border: 1px solid var(--line); background: var(--card); border-radius: 6px; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; padding: 10px 16px; }
+.btn.small { padding: 3px 8px; font-size: 13px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.err { color: var(--red); font-size: 13px; min-height: 1em; margin: 6px 0 0; }
+.ok { color: var(--green); font-size: 13px; }
+.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.chip { text-align: left; border: 1px solid var(--line); background: var(--page); border-radius: 8px; padding: 10px; cursor: pointer; }
+.chip b { display: block; font-size: 14px; }
+.chip small { color: var(--muted); font-size: 12px; }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; word-break: break-all; }
+.preview { background: var(--page); border: 1px dashed var(--line); border-radius: 8px; padding: 10px 12px; margin: 4px 0 12px; }
+.result { border: 2px solid var(--accent); border-radius: 10px; padding: 14px; margin-top: 14px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.qr { margin-top: 10px; background: #fff; padding: 8px; display: inline-block; border-radius: 6px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-size: 12px; color: var(--muted); font-weight: 700; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.archived td { color: var(--muted); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.tile { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.tile .k { font-size: 12px; color: var(--muted); font-weight: 700; }
+.tile .v { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.tile .s { font-size: 12px; color: var(--muted); }
+.periods { display: flex; gap: 4px; flex-wrap: wrap; }
+.legend { display: flex; gap: 14px; font-size: 13px; color: var(--muted); margin: 6px 0; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.chart { position: relative; }
+.chart svg { width: 100%; height: 220px; display: block; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--page); font-size: 12px; padding: 6px 8px; border-radius: 6px; white-space: nowrap; display: none; }
+details > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+.login { max-width: 360px; margin: 12vh auto; }
+.hidden { display: none !important; }
+.toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); background: var(--ink); color: var(--page); padding: 8px 14px; border-radius: 6px; font-size: 14px; z-index: 50; }
+</style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<div id="loginView" class="wrap hidden">
+  <div class="card login">
+    <h2>세종이네 노션 어드민</h2>
+    <p class="hint">공용 아이디와 비밀번호로 들어가요. 10분에 10번까지 시도할 수 있어요.</p>
+    <form id="loginForm">
+      <label class="f"><span>아이디</span><input type="text" id="lgId" autocomplete="username" required></label>
+      <label class="f"><span>비밀번호</span><input type="password" id="lgPw" autocomplete="current-password" required></label>
+      <button class="btn primary" style="width:100%">들어가기</button>
+      <p class="err" id="lgErr"></p>
+    </form>
+  </div>
+</div>
+
+<!-- 어드민 -->
+<div id="appView" class="wrap hidden">
+  <header>
+    <h1>세종이네 노션 어드민</h1>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="builder" aria-selected="true">링크 빌더</button>
+      <button class="tab" role="tab" data-tab="dashboard" aria-selected="false">대시보드</button>
+      <button class="tab" role="tab" data-tab="channels" aria-selected="false">채널·CL 관리</button>
+    </nav>
+    <span class="spacer"></span>
+    <button class="btn small" id="logoutBtn">로그아웃</button>
+  </header>
+
+  <!-- ===== 링크 빌더 ===== -->
+  <section id="tab-builder">
+    <div class="card">
+      <h2>링크 만들기</h2>
+      <p class="hint">CL과 채널을 고르면 UTM 링크와 짧은 링크가 만들어져요. utm_content는 <code>CL_게재영역_날짜</code>로 자동 완성돼요.</p>
+      <div class="grid2">
+        <label class="f"><span>1. 내 CL</span><select id="bCrew"></select></label>
+        <label class="f"><span>캠페인 (무엇을 홍보하나)</span><input type="text" id="bCampaign"></label>
+      </div>
+      <div class="f"><span style="display:block;font-size:13px;font-weight:700;margin-bottom:6px">2. 채널</span>
+        <div class="chips" id="bChannels"></div>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <label class="f"><span>3. 게재영역 (어디에 올리나)</span>
+          <input type="text" id="bPlacement" placeholder="예: cs-dept, library, free-board">
+          <small class="hint" id="bPlacementHint"></small>
+        </label>
+        <label class="f"><span>메모 (선택, 한글 가능)</span><input type="text" id="bLabel" maxlength="200" placeholder="예: 컴공 과톡 공지"></label>
+      </div>
+      <div class="preview">
+        <div class="hint" style="margin:0">미리보기</div>
+        <div class="mono" id="bPreview">—</div>
+      </div>
+      <button class="btn primary" id="bCreate" disabled>링크 만들기</button>
+      <p class="err" id="bErr"></p>
+      <div id="bResult"></div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h2>링크 장부</h2>
+        <div class="row">
+          <select id="lCrew" style="width:auto"><option value="">전체 CL</option></select>
+          <label class="row" style="font-size:13px"><input type="checkbox" id="lArchived"> 보관한 링크도 보기</label>
+        </div>
+      </div>
+      <p class="hint">클릭은 짧은 링크(/l/코드)로 들어온 것만 세요. 긴 링크로 바로 들어오면 클릭은 안 잡히고 신청만 잡혀요. 숫자는 전체 기간 누적이에요.</p>
+      <div class="table-wrap"><table id="ledger"></table></div>
+    </div>
+  </section>
+
+  <!-- ===== 대시보드 ===== -->
+  <section id="tab-dashboard" class="hidden">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="periods" id="periods">
+          <button class="btn small" data-p="today">오늘</button>
+          <button class="btn small" data-p="7">7일</button>
+          <button class="btn small" data-p="30">30일</button>
+          <button class="btn small" data-p="all">전체</button>
+          <button class="btn small" data-p="custom">직접</button>
+        </div>
+        <div class="row">
+          <select id="dCrew" style="width:auto"><option value="">전체 CL</option></select>
+          <select id="dChannel" style="width:auto"><option value="">전체 채널</option></select>
+        </div>
+      </div>
+      <div class="row hidden" id="customRange" style="margin-top:8px">
+        <input type="date" id="dFrom" style="width:auto"> ~ <input type="date" id="dTo" style="width:auto">
+        <button class="btn small" id="dApply">적용</button>
+      </div>
+      <p class="hint" id="dRangeText" style="margin:8px 0 0"></p>
+    </div>
+
+    <div class="tiles" id="tiles"></div>
+
+    <div class="card">
+      <h2>일별 추이</h2>
+      <div class="legend"><span><i style="background:var(--series-1)"></i>클릭</span><span><i style="background:var(--series-2)"></i>신청(경로 확인)</span></div>
+      <div class="chart" id="chart"><svg role="img" aria-label="일별 클릭과 신청"></svg><div class="tip" id="tip"></div></div>
+    </div>
+
+    <div class="card"><h2>채널별</h2><div class="table-wrap"><table id="tChannel"></table></div></div>
+    <div class="card"><h2>CL별</h2><div class="table-wrap"><table id="tCrew"></table></div></div>
+    <div class="card"><h2>게재영역별</h2><div class="table-wrap"><table id="tPlacement"></table></div></div>
+    <div class="card"><h2>소재(utm_content) 상위 10</h2><div class="table-wrap"><table id="tContent"></table></div></div>
+  </section>
+
+  <!-- ===== 채널·CL 관리 ===== -->
+  <section id="tab-channels" class="hidden">
+    <div class="card">
+      <h2>채널</h2>
+      <p class="hint">utm_source·utm_medium은 한 번 저장하면 바꿀 수 없어요(통계가 갈라지지 않게). 숨긴 채널은 빌더에 안 나와요. 게재영역 기본값이 비어 있으면 링크 만들 때 직접 입력해요.</p>
+      <div class="table-wrap"><table id="chTable"></table></div>
+      <details style="margin-top:12px">
+        <summary>채널 추가</summary>
+        <form id="chForm">
+          <div class="grid2">
+            <label class="f"><span>채널 이름 (한글)</span><input type="text" id="chName" required placeholder="예: 학과 홈페이지"></label>
+            <label class="f"><span>채널 코드 (영문)</span><input type="text" id="chCode" required placeholder="예: dept-web"></label>
+            <label class="f"><span>utm_source (저장 후 수정 불가)</span><input type="text" id="chSource" required placeholder="예: sejong"></label>
+            <label class="f"><span>utm_medium (저장 후 수정 불가)</span><input type="text" id="chMedium" required placeholder="예: web"></label>
+            <label class="f"><span>게재영역 기본값 (비우면 매번 입력)</span><input type="text" id="chPlacement" placeholder="예: notice"></label>
+            <label class="f"><span>메모</span><input type="text" id="chNote"></label>
+          </div>
+          <button class="btn primary">채널 추가</button>
+          <p class="err" id="chErr"></p>
+        </form>
+      </details>
+    </div>
+    <div class="card">
+      <h2>CL</h2>
+      <p class="hint">CL 코드는 utm_content 맨 앞에 들어가요(예: cl01_post_261009). 코드는 바꿀 수 없고 이름만 바꿀 수 있어요.</p>
+      <div class="table-wrap"><table id="crTable"></table></div>
+      <form id="crForm" class="row" style="margin-top:10px">
+        <input type="text" id="crCode" placeholder="cl03" style="width:90px" required>
+        <input type="text" id="crName" placeholder="이름" style="width:140px" required>
+        <button class="btn">CL 추가</button>
+        <span class="err" id="crErr"></span>
+      </form>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ==========================================================
+   📌 수정 포인트 ② 오류 문구
+   ========================================================== */
+const ERRORS = {
+  wrong_credentials: '아이디 또는 비밀번호가 맞지 않아요.',
+  too_many_requests: '시도가 너무 많아요. 10분 뒤 다시 해 주세요.',
+  not_configured: '아직 Vercel에 ADMIN_ID / ADMIN_PASSWORD 가 설정되지 않았어요.',
+  login_required: '로그인이 풀렸어요. 다시 로그인해 주세요.',
+  invalid_placement: '게재영역은 영문 소문자·숫자·하이픈(-)만 쓸 수 있어요.',
+  invalid_campaign: '캠페인은 영문 소문자·숫자·. _ - 만 쓸 수 있어요.',
+  invalid_slug: '코드·source·medium은 영문 소문자·숫자·. _ - 만 쓸 수 있어요.',
+  duplicate_code: '이미 있는 코드예요.',
+  invalid_crew: 'CL 코드는 cl + 숫자 두 자리예요. (예: cl03)',
+  missing_env: '서버 환경변수가 빠져 있어요. (Supabase 연동 확인)',
+};
+const errText = e => ERRORS[e] || `문제가 생겼어요. (${e})`;
+
+/* ---------- 공통 ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = n => Number(n || 0).toLocaleString('ko-KR');
+const rate = (s, c) => c ? `${(s / c * 100).toFixed(1)}%` : '—';
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} },
+};
+function toast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 1600);
+}
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); toast('복사했어요'); }
+  catch (_) { prompt('복사해서 쓰세요', text); }
+}
+async function api(path, opt = {}) {
+  const r = await fetch(path, {
+    method: opt.method || 'GET',
+    headers: opt.body ? { 'Content-Type': 'application/json' } : {},
+    body: opt.body ? JSON.stringify(opt.body) : undefined,
+    credentials: 'same-origin',
+  });
+  const data = await r.json().catch(() => ({ ok: false, error: `http_${r.status}` }));
+  if (r.status === 401 && path !== '/api/admin/auth') { showLogin(); }
+  if (!r.ok || !data.ok) throw new Error(data.error || `http_${r.status}`);
+  return data;
+}
+// UTM 값 규칙: 소문자, 띄어쓰기 → 하이픈, 영문·숫자·하이픈만
+// liveSlug: 입력하는 동안(끝 공백 유지), slugify: 저장할 때(앞뒤 하이픈 정리)
+const liveSlug = (v, extra = '') => String(v || '').toLowerCase().replace(/\s+/g, '-').replace(new RegExp(`[^a-z0-9${extra}-]`, 'g'), '').replace(/-{2,}/g, '-');
+const slugify = (v, extra = '') => liveSlug(v, extra).replace(/^[-._]+|[-._]+$/g, '');
+const kstYymmdd = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(2, 10).replace(/-/g, '');
+const shortUrl = code => `${location.origin}/l/${code}`;
+const longUrl = path => `${location.origin}${path}`;
+
+const state = { channels: [], crews: [], links: [], defaultCampaign: 'sju-test', selectedChannel: null };
+
+/* ---------- 로그인 ---------- */
+function showLogin() { $('appView').classList.add('hidden'); $('loginView').classList.remove('hidden'); }
+async function boot() {
+  const me = await api('/api/admin/auth').catch(() => ({}));
+  if (me.configured === false) $('lgErr').textContent = ERRORS.not_configured;
+  if (!me.loggedIn) return showLogin();
+  $('loginView').classList.add('hidden'); $('appView').classList.remove('hidden');
+  await loadMeta();
+  await loadLinks();
+}
+$('loginForm').onsubmit = async e => {
+  e.preventDefault(); $('lgErr').textContent = '';
+  try {
+    await api('/api/admin/auth', { method: 'POST', body: { id: $('lgId').value, password: $('lgPw').value } });
+    $('lgPw').value = ''; boot();
+  } catch (err) { $('lgErr').textContent = errText(err.message); }
+};
+$('logoutBtn').onclick = async () => { await api('/api/admin/auth', { method: 'DELETE' }).catch(() => {}); showLogin(); };
+
+/* ---------- 탭 ---------- */
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === t));
+  ['builder', 'dashboard', 'channels'].forEach(n => $(`tab-${n}`).classList.toggle('hidden', n !== t.dataset.tab));
+  if (t.dataset.tab === 'dashboard' && !dash.loaded) setPeriod('7');
+  if (t.dataset.tab === 'channels') renderManage();
+});
+
+/* ---------- 채널·CL 불러오기 ---------- */
+async function loadMeta() {
+  const d = await api('/api/admin/channels');
+  state.channels = d.channels; state.crews = d.crews;
+  const crewOpts = state.crews.filter(c => c.active).map(c => `<option value="${c.code}">${c.code} ${esc(c.name)}</option>`).join('');
+  $('bCrew').innerHTML = crewOpts;
+  const saved = store.get('sju_admin_crew');
+  if (saved && state.crews.some(c => c.code === saved && c.active)) $('bCrew').value = saved;
+  const allCrew = state.crews.map(c => `<option value="${c.code}">${c.code} ${esc(c.name)}</option>`).join('');
+  $('lCrew').innerHTML = `<option value="">전체 CL</option>${allCrew}`;
+  $('dCrew').innerHTML = `<option value="">전체 CL</option>${allCrew}`;
+  $('dChannel').innerHTML = `<option value="">전체 채널</option>` + state.channels.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  renderChannelChips();
+}
+
+/* ---------- 링크 빌더 ---------- */
+function renderChannelChips() {
+  $('bChannels').innerHTML = state.channels.filter(c => c.active).map(c =>
+    `<button type="button" class="chip" data-id="${c.id}" aria-pressed="${state.selectedChannel === c.id}">
+       <b>${esc(c.name)}</b><small>${esc(c.source)} / ${esc(c.medium)}</small></button>`).join('');
+  $('bChannels').querySelectorAll('.chip').forEach(b => b.onclick = () => {
+    state.selectedChannel = b.dataset.id;
+    const ch = state.channels.find(c => c.id === b.dataset.id);
+    $('bPlacement').value = ch.placement || '';
+    $('bPlacementHint').textContent = ch.placement ? `기본값 ${ch.placement} (바꿔도 돼요)` : '이 채널은 매번 직접 입력해요. 예: 방 이름, 게시판, 위치';
+    renderChannelChips(); updatePreview();
+    if (!ch.placement) $('bPlacement').focus();
+  });
+}
+function updatePreview() {
+  const ch = state.channels.find(c => c.id === state.selectedChannel);
+  const crew = $('bCrew').value;
+  const placement = slugify($('bPlacement').value);
+  const campaign = slugify($('bCampaign').value, '._');
+  const ready = ch && crew && placement && campaign;
+  $('bCreate').disabled = !ready;
+  if (!ready) { $('bPreview').textContent = '채널과 게재영역을 정하면 여기에 링크가 보여요'; return; }
+  const q = new URLSearchParams({ utm_source: ch.source, utm_medium: ch.medium, utm_campaign: campaign, utm_content: `${crew}_${placement}_${kstYymmdd()}` });
+  $('bPreview').textContent = longUrl(`/?${q}`);
+}
+$('bPlacement').addEventListener('input', e => {
+  if (e.isComposing) return; // 한글 조합 중에는 건드리지 않음
+  const cleaned = liveSlug(e.target.value);
+  if (/[ㄱ-힣]/.test(e.target.value)) $('bErr').textContent = '게재영역에는 한글을 쓸 수 없어요. 영문으로 적어 주세요 (메모 칸에는 한글 가능).';
+  else $('bErr').textContent = '';
+  if (cleaned !== e.target.value) e.target.value = cleaned;
+  updatePreview();
+});
+$('bCampaign').addEventListener('input', e => { if (e.isComposing) return; const c = liveSlug(e.target.value, '._'); if (c !== e.target.value) e.target.value = c; updatePreview(); });
+['bPlacement', 'bCampaign'].forEach(id => $(id).addEventListener('compositionend', e => e.target.dispatchEvent(new Event('input'))));
+$('bCrew').onchange = () => { store.set('sju_admin_crew', $('bCrew').value); updatePreview(); };
+
+$('bCreate').onclick = async () => {
+  $('bErr').textContent = ''; $('bCreate').disabled = true;
+  try {
+    const d = await api('/api/admin/links', { method: 'POST', body: {
+      channel_id: state.selectedChannel, crew_code: $('bCrew').value,
+      placement: slugify($('bPlacement').value), campaign: slugify($('bCampaign').value, '._'), label: $('bLabel').value,
+    } });
+    renderResult(d.link, d.existing);
+    $('bLabel').value = '';
+    await loadLinks();
+  } catch (err) { $('bErr').textContent = errText(err.message); }
+  updatePreview();
+};
+function renderResult(l, existing) {
+  $('bResult').innerHTML = `
+    <div class="result">
+      <div class="${existing ? 'hint' : 'ok'}" style="margin:0 0 6px">${existing ? '같은 조합의 링크가 이미 있어서 그 링크를 보여 드려요.' : '새 링크를 만들었어요.'}</div>
+      <div class="row"><b>짧은 링크</b> <code>${esc(shortUrl(l.short_code))}</code>
+        <button class="btn small" data-copy="${esc(shortUrl(l.short_code))}">복사</button></div>
+      <div class="row" style="margin-top:6px"><b>긴 링크</b> <code>${esc(longUrl(l.url))}</code>
+        <button class="btn small" data-copy="${esc(longUrl(l.url))}">복사</button></div>
+      <div class="hint" style="margin:6px 0 0">클릭 수를 세려면 짧은 링크를 쓰세요.</div>
+      <div class="qr" id="resultQr"></div>
+    </div>`;
+  bindCopy($('bResult'));
+  drawQr($('resultQr'), shortUrl(l.short_code));
+}
+function drawQr(el, text) {
+  el.innerHTML = '';
+  if (window.QRCode) new QRCode(el, { text, width: 128, height: 128, correctLevel: QRCode.CorrectLevel.M });
+  else el.textContent = 'QR 라이브러리를 불러오지 못했어요';
+}
+function bindCopy(root) { root.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => copy(b.dataset.copy)); }
+
+/* ---------- 링크 장부 ---------- */
+async function loadLinks() {
+  const d = await api('/api/admin/links');
+  state.links = d.links; state.defaultCampaign = d.default_campaign;
+  if (!$('bCampaign').value) $('bCampaign').value = d.default_campaign;
+  renderLedger(); updatePreview();
+}
+function renderLedger() {
+  const crew = $('lCrew').value, showArchived = $('lArchived').checked;
+  const ch = id => (state.channels.find(c => c.id === id) || {}).name || '—';
+  const rows = state.links.filter(l => (!crew || l.crew_code === crew) && (showArchived || !l.archived));
+  $('ledger').innerHTML = `<thead><tr><th>채널</th><th>CL</th><th>utm_content</th><th>메모</th><th>짧은 링크</th>
+    <th class="num">클릭</th><th class="num">신청</th><th class="num">전환율</th><th>만든 날</th><th></th></tr></thead><tbody>` +
+    (rows.length ? rows.map(l => `<tr class="${l.archived ? 'archived' : ''}">
+      <td>${esc(ch(l.channel_id))}</td><td>${esc(l.crew_code || '—')}</td><td class="mono">${esc(l.content || '—')}</td>
+      <td>${esc(l.label || '')}</td><td class="mono">/l/${esc(l.short_code)}</td>
+      <td class="num">${fmt(l.clicks)}</td><td class="num">${fmt(l.signups)}</td><td class="num">${rate(l.signups, l.clicks)}</td>
+      <td>${esc(l.created_at.slice(0, 10))}</td>
+      <td><div class="row">
+        <button class="btn small" data-copy="${esc(shortUrl(l.short_code))}">짧은 링크</button>
+        <button class="btn small" data-copy="${esc(longUrl(l.url))}">긴 링크</button>
+        <button class="btn small" data-qr="${esc(l.short_code)}">QR</button>
+        <button class="btn small" data-archive="${l.id}" data-v="${!l.archived}">${l.archived ? '되살리기' : '보관'}</button>
+      </div></td></tr>`).join('') : `<tr><td colspan="10" class="hint">아직 링크가 없어요.</td></tr>`) + '</tbody>';
+  bindCopy($('ledger'));
+  $('ledger').querySelectorAll('[data-qr]').forEach(b => b.onclick = () => {
+    const l = state.links.find(x => x.short_code === b.dataset.qr); renderResult(l, true);
+    $('bResult').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  $('ledger').querySelectorAll('[data-archive]').forEach(b => b.onclick = async () => {
+    await api('/api/admin/links', { method: 'PATCH', body: { id: b.dataset.archive, archived: b.dataset.v === 'true' } }).catch(e => toast(errText(e.message)));
+    loadLinks();
+  });
+}
+$('lCrew').onchange = renderLedger; $('lArchived').onchange = renderLedger;
+
+/* ---------- 대시보드 ---------- */
+const dash = { loaded: false, data: null };
+const kstMidnight = (y, m, d) => new Date(Date.UTC(y, m, d) - 9 * 3600e3);
+function kstToday() { const n = new Date(Date.now() + 9 * 3600e3); return [n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()]; }
+function setPeriod(p) {
+  document.querySelectorAll('#periods .btn').forEach(b => b.classList.toggle('primary', b.dataset.p === p));
+  $('customRange').classList.toggle('hidden', p !== 'custom');
+  if (p === 'custom') return;
+  const [y, m, d] = kstToday();
+  const to = kstMidnight(y, m, d + 1);
+  const from = p === 'all' ? null : kstMidnight(y, m, d - (p === 'today' ? 0 : Number(p) - 1));
+  loadStats(from, to, p);
+}
+document.querySelectorAll('#periods .btn').forEach(b => b.onclick = () => setPeriod(b.dataset.p));
+$('dApply').onclick = () => {
+  if (!$('dFrom').value || !$('dTo').value) return;
+  const [a, b] = [$('dFrom').value, $('dTo').value].map(v => v.split('-').map(Number));
+  loadStats(kstMidnight(a[0], a[1] - 1, a[2]), kstMidnight(b[0], b[1] - 1, b[2] + 1), 'custom');
+};
+async function loadStats(from, to, p) {
+  const q = new URLSearchParams(); if (from) q.set('from', from.toISOString()); if (to) q.set('to', to.toISOString());
+  $('dRangeText').textContent = '불러오는 중…';
+  try {
+    dash.data = await api(`/api/admin/stats?${q}`); dash.loaded = true; dash.from = from; dash.to = to;
+    renderDash();
+  } catch (e) { $('dRangeText').textContent = errText(e.message); }
+}
+$('dCrew').onchange = () => dash.data && renderDash();
+$('dChannel').onchange = () => dash.data && renderDash();
+
+function renderDash() {
+  const d = dash.data, crew = $('dCrew').value, chId = $('dChannel').value;
+  const linkById = Object.fromEntries(d.links.map(l => [l.id, l]));
+  const chName = id => (d.channels.find(c => c.id === id) || {}).name || '(삭제된 채널)';
+  const crewName = code => { const c = d.crews.find(x => x.code === code); return c ? `${c.code} ${c.name}` : '—'; };
+  const pass = id => { const l = linkById[id]; return l && (!crew || l.crew_code === crew) && (!chId || l.channel_id === chId); };
+  const rows = d.by_link.filter(r => pass(r.id));
+  const clicks = rows.reduce((a, r) => a + r.clicks, 0), signups = rows.reduce((a, r) => a + r.signups, 0);
+  const filtered = !!(crew || chId);
+  const fmtDate = x => x ? new Date(x.getTime() + 9 * 3600e3).toISOString().slice(0, 10) : '처음';
+  $('dRangeText').textContent = `${fmtDate(dash.from)} ~ ${fmtDate(new Date(dash.to.getTime() - 1))} (한국 시간)` + (filtered ? ' · 필터 적용 중' : '');
+
+  $('tiles').innerHTML = [
+    ['클릭', fmt(clicks), '짧은 링크로 들어온 수'],
+    ['신청 (경로 확인)', fmt(signups), '장부 링크와 UTM이 맞는 신청'],
+    ['전환율', rate(signups, clicks), '신청 ÷ 클릭'],
+    ['전체 신청', fmt(d.summary.signups_total), `다른 UTM ${fmt(d.summary.signups_utm_other)} · UTM 없음 ${fmt(d.summary.signups_no_utm)}${filtered ? ' (필터 무관)' : ''}`],
+    ['활성 링크', fmt(d.summary.active_links), '보관하지 않은 링크'],
+  ].map(([k, v, s]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+
+  // 일별
+  const byDay = {};
+  d.daily.filter(r => pass(r.link_id)).forEach(r => {
+    byDay[r.date] = byDay[r.date] || { clicks: 0, signups: 0 };
+    byDay[r.date].clicks += r.clicks; byDay[r.date].signups += r.signups;
+  });
+  const days = [];
+  const start = dash.from || (d.daily.length ? new Date(d.daily[0].date + 'T00:00:00+09:00') : new Date(dash.to.getTime() - 864e5));
+  for (let t = new Date(start.getTime() + 9 * 3600e3); t < new Date(dash.to.getTime() + 9 * 3600e3); t = new Date(t.getTime() + 864e5)) {
+    const key = t.toISOString().slice(0, 10); days.push({ date: key, ...(byDay[key] || { clicks: 0, signups: 0 }) });
+    if (days.length > 400) break;
+  }
+  drawChart(days);
+
+  // 표
+  const group = keyFn => {
+    const m = {};
+    rows.forEach(r => { const k = keyFn(linkById[r.id]); m[k] = m[k] || { k, clicks: 0, signups: 0 }; m[k].clicks += r.clicks; m[k].signups += r.signups; });
+    return Object.values(m).sort((a, b) => b.clicks - a.clicks || b.signups - a.signups);
+  };
+  const table = (el, title, list, limit) => {
+    const L = limit ? list.slice(0, limit) : list;
+    $(el).innerHTML = `<thead><tr><th>${title}</th><th class="num">클릭</th><th class="num">신청</th><th class="num">전환율</th></tr></thead><tbody>` +
+      (L.length ? L.map(r => `<tr><td>${esc(r.k)}</td><td class="num">${fmt(r.clicks)}</td><td class="num">${fmt(r.signups)}</td><td class="num">${rate(r.signups, r.clicks)}</td></tr>`).join('')
+        : `<tr><td colspan="4" class="hint">이 기간에 기록이 없어요.</td></tr>`) + '</tbody>';
+  };
+  table('tChannel', '채널', group(l => chName(l.channel_id)));
+  table('tCrew', 'CL', group(l => crewName(l.crew_code)));
+  table('tPlacement', '게재영역', group(l => l.placement || '—'));
+  table('tContent', 'utm_content', group(l => l.content || '—'), 10);
+}
+
+/* 📌 수정 포인트 ③ 일별 차트 — 클릭·신청 막대 (같은 축) */
+function drawChart(days) {
+  const svg = document.querySelector('#chart svg'), tip = $('tip');
+  const W = svg.clientWidth || 600, H = 220, pad = { l: 34, r: 8, t: 10, b: 24 };
+  const max = Math.max(1, ...days.map(d => Math.max(d.clicks, d.signups)));
+  const nice = Math.pow(10, Math.floor(Math.log10(max))); const top = Math.ceil(max / nice) * nice;
+  const iw = W - pad.l - pad.r, ih = H - pad.t - pad.b, slot = iw / Math.max(days.length, 1);
+  const bw = Math.max(2, Math.min(14, (slot - 4) / 2));
+  const y = v => pad.t + ih - (v / top) * ih;
+  let g = '';
+  [0, top / 2, top].forEach(v => {
+    g += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/>`;
+    g += `<text x="${pad.l - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmt(v)}</text>`;
+  });
+  const every = Math.ceil(days.length / 8);
+  days.forEach((d, i) => {
+    const cx = pad.l + slot * i + slot / 2;
+    const bar = (v, x, color) => v > 0 ? `<rect x="${x}" y="${y(v)}" width="${bw}" height="${pad.t + ih - y(v)}" rx="2" fill="${color}"/>` : '';
+    g += bar(d.clicks, cx - bw - 1, 'var(--series-1)') + bar(d.signups, cx + 1, 'var(--series-2)');
+    if (i % every === 0) g += `<text x="${cx}" y="${H - 6}" text-anchor="middle" font-size="11" fill="var(--muted)">${d.date.slice(5)}</text>`;
+    g += `<rect x="${pad.l + slot * i}" y="${pad.t}" width="${slot}" height="${ih}" fill="transparent" data-i="${i}"/>`;
+  });
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = g || '';
+  svg.querySelectorAll('rect[data-i]').forEach(r => {
+    r.onmousemove = e => {
+      const d = days[r.dataset.i];
+      tip.innerHTML = `${d.date}<br>클릭 ${fmt(d.clicks)} · 신청 ${fmt(d.signups)}`;
+      const box = $('chart').getBoundingClientRect();
+      tip.style.display = 'block';
+      tip.style.left = `${Math.min(e.clientX - box.left + 10, box.width - 140)}px`;
+      tip.style.top = `${e.clientY - box.top - 40}px`;
+    };
+    r.onmouseleave = () => { tip.style.display = 'none'; };
+  });
+}
+window.addEventListener('resize', () => dash.data && !$('tab-dashboard').classList.contains('hidden') && renderDash());
+
+/* ---------- 채널·CL 관리 ---------- */
+function renderManage() {
+  $('chTable').innerHTML = `<thead><tr><th>이름</th><th>source</th><th>medium</th><th>게재영역 기본값</th><th>메모</th><th>상태</th></tr></thead><tbody>` +
+    state.channels.map(c => `<tr class="${c.active ? '' : 'archived'}">
+      <td><input type="text" value="${esc(c.name)}" data-ch="${c.id}" data-f="name" style="min-width:120px"></td>
+      <td class="mono">${esc(c.source)}</td><td class="mono">${esc(c.medium)}</td>
+      <td><input type="text" value="${esc(c.placement || '')}" placeholder="(직접 입력)" data-ch="${c.id}" data-f="placement" style="width:120px"></td>
+      <td><input type="text" value="${esc(c.note || '')}" data-ch="${c.id}" data-f="note" style="min-width:120px"></td>
+      <td><button class="btn small" data-toggle="${c.id}" data-v="${!c.active}">${c.active ? '숨기기' : '표시'}</button></td></tr>`).join('') + '</tbody>';
+  $('chTable').querySelectorAll('input[data-ch]').forEach(inp => inp.onchange = async () => {
+    const v = inp.dataset.f === 'placement' ? slugify(inp.value) : inp.value;
+    try { await api('/api/admin/channels', { method: 'PATCH', body: { kind: 'channel', id: inp.dataset.ch, [inp.dataset.f]: v } }); toast('저장했어요'); await loadMeta(); renderManage(); }
+    catch (e) { toast(errText(e.message)); }
+  });
+  $('chTable').querySelectorAll('[data-toggle]').forEach(b => b.onclick = async () => {
+    try { await api('/api/admin/channels', { method: 'PATCH', body: { kind: 'channel', id: b.dataset.toggle, active: b.dataset.v === 'true' } }); await loadMeta(); renderManage(); }
+    catch (e) { toast(errText(e.message)); }
+  });
+  $('crTable').innerHTML = `<thead><tr><th>코드</th><th>이름</th><th>상태</th></tr></thead><tbody>` +
+    state.crews.map(c => `<tr class="${c.active ? '' : 'archived'}"><td class="mono">${c.code}</td>
+      <td><input type="text" value="${esc(c.name)}" data-cr="${c.code}" style="width:140px"></td>
+      <td><button class="btn small" data-crt="${c.code}" data-v="${!c.active}">${c.active ? '숨기기' : '표시'}</button></td></tr>`).join('') + '</tbody>';
+  $('crTable').querySelectorAll('input[data-cr]').forEach(inp => inp.onchange = async () => {
+    try { await api('/api/admin/channels', { method: 'PATCH', body: { kind: 'crew', code: inp.dataset.cr, name: inp.value } }); toast('저장했어요'); await loadMeta(); }
+    catch (e) { toast(errText(e.message)); }
+  });
+  $('crTable').querySelectorAll('[data-crt]').forEach(b => b.onclick = async () => {
+    try { await api('/api/admin/channels', { method: 'PATCH', body: { kind: 'crew', code: b.dataset.crt, active: b.dataset.v === 'true' } }); await loadMeta(); renderManage(); }
+    catch (e) { toast(errText(e.message)); }
+  });
+}
+$('chForm').onsubmit = async e => {
+  e.preventDefault(); $('chErr').textContent = '';
+  try {
+    await api('/api/admin/channels', { method: 'POST', body: { kind: 'channel',
+      name: $('chName').value, code: slugify($('chCode').value, '._'), source: slugify($('chSource').value, '._'),
+      medium: slugify($('chMedium').value, '._'), placement: slugify($('chPlacement').value), note: $('chNote').value } });
+    e.target.reset(); await loadMeta(); renderManage(); toast('채널을 추가했어요');
+  } catch (err) { $('chErr').textContent = errText(err.message); }
+};
+$('crForm').onsubmit = async e => {
+  e.preventDefault(); $('crErr').textContent = '';
+  try {
+    await api('/api/admin/channels', { method: 'POST', body: { kind: 'crew', code: $('crCode').value.trim().toLowerCase(), name: $('crName').value } });
+    e.target.reset(); await loadMeta(); renderManage(); toast('CL을 추가했어요');
+  } catch (err) { $('crErr').textContent = errText(err.message); }
+};
+
+boot();
+</script>
+</body>
+</html>
