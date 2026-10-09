@@ -81,6 +81,33 @@ tr.archived td { color: var(--muted); }
 details > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
 .login { max-width: 360px; margin: 12vh auto; }
 .hidden { display: none !important; }
+/* 📌 신청자 탭 */
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.filters select, .filters input { font-size: 14px; padding: 7px 8px; }
+.pill { display: inline-block; font-size: 12px; padding: 1px 7px; border-radius: 999px; background: var(--hover); color: var(--muted); white-space: nowrap; }
+.pill.yes { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.st-new { border-color: var(--accent) !important; font-weight: 700; }
+.sg td { font-size: 14px; }
+.sg .who b { display: block; }
+.sg .who a { color: inherit; font-variant-numeric: tabular-nums; }
+.sg .who .acts { display: block; white-space: nowrap; }
+.sg .who .acts a { font-size: 12px; color: var(--muted); margin-right: 8px; }
+.sg select, .sg input[type=text] { padding: 5px 6px; font-size: 13px; }
+.sg select[data-st] { min-width: 96px; }
+.sg td[data-l="경로"] .mono { word-break: normal; overflow-wrap: anywhere; }
+.sg .note { min-width: 140px; }
+.sg details { font-size: 12px; color: var(--muted); }
+.sg details summary { font-weight: 400; padding: 2px 0; }
+@media (max-width: 760px) {
+  .sg thead { display: none; }
+  .sg tr { display: block; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; background: var(--card); }
+  .sg td { display: flex; gap: 10px; border: 0; padding: 4px 0; }
+  .sg td::before { content: attr(data-l); flex: 0 0 74px; font-size: 12px; color: var(--muted); font-weight: 700; padding-top: 2px; }
+  .sg td > * { flex: 1; min-width: 0; }
+}
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: grid; place-items: center; z-index: 60; padding: 16px; }
+.modal-bg .card { max-width: 420px; width: 100%; margin: 0; }
+.btn.danger { background: var(--red); border-color: var(--red); color: #fff; font-weight: 700; }
 .toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); background: var(--ink); color: var(--page); padding: 8px 14px; border-radius: 6px; font-size: 14px; z-index: 50; }
 </style>
 </head>
@@ -105,7 +132,8 @@ details > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
   <header>
     <h1>세종이네 노션 어드민</h1>
     <nav class="tabs" role="tablist">
-      <button class="tab" role="tab" data-tab="builder" aria-selected="true">링크 빌더</button>
+      <button class="tab" role="tab" data-tab="signups" aria-selected="true">신청자</button>
+      <button class="tab" role="tab" data-tab="builder" aria-selected="false">링크 빌더</button>
       <button class="tab" role="tab" data-tab="dashboard" aria-selected="false">대시보드</button>
       <button class="tab" role="tab" data-tab="channels" aria-selected="false">채널·CL 관리</button>
     </nav>
@@ -114,7 +142,32 @@ details > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
   </header>
 
   <!-- ===== 링크 빌더 ===== -->
-  <section id="tab-builder">
+  <!-- ===== 신청자 ===== -->
+  <section id="tab-signups">
+    <div class="tiles" id="sgTiles"></div>
+    <div class="card">
+      <div class="filters">
+        <select id="fStatus"><option value="">처리 상태 전체</option></select>
+        <select id="fCode"><option value="">결과 전체</option></select>
+        <select id="fTrack"><option value="">트랙 전체</option></select>
+        <select id="fMkt"><option value="">소식 받기 전체</option><option value="y">동의한 사람</option><option value="n">동의 안 한 사람</option></select>
+        <select id="fSource"><option value="">유입 경로 전체</option></select>
+        <input type="text" id="fQ" placeholder="이름·전화번호 검색">
+      </div>
+      <div class="row" style="justify-content:space-between;margin-top:10px">
+        <span class="hint" id="sgCount" style="margin:0"></span>
+        <div class="row">
+          <button class="btn small" id="csvAll">지금 보이는 목록 CSV</button>
+          <button class="btn small" id="csvMkt">소식 동의한 사람만 CSV</button>
+          <button class="btn small" id="sgReload">새로고침</button>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap"><table class="sg" id="sgTable"></table></div>
+    <p class="hint">처리 상태·메모는 바꾸는 즉시 저장돼요. 같은 번호로 다시 신청하면 결과는 최신으로 바뀌지만 처리 상태·메모는 그대로 남아요.</p>
+  </section>
+
+  <section id="tab-builder" class="hidden">
     <div class="card">
       <h2>링크 만들기</h2>
       <p class="hint">CL과 채널을 고르면 UTM 링크와 짧은 링크가 만들어져요. utm_content는 <code>CL_게재영역_날짜</code>로 자동 완성돼요.</p>
@@ -291,7 +344,7 @@ async function boot() {
   if (me.configured === false) $('lgErr').textContent = ERRORS.not_configured;
   if (!me.loggedIn) return showLogin();
   $('loginView').classList.add('hidden'); $('appView').classList.remove('hidden');
-  await loadMeta();
+  await Promise.all([loadMeta(), loadSignups()]);
   await loadLinks();
 }
 $('loginForm').onsubmit = async e => {
@@ -306,7 +359,8 @@ $('logoutBtn').onclick = async () => { await api('/api/admin/auth', { method: 'D
 /* ---------- 탭 ---------- */
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
   document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === t));
-  ['builder', 'dashboard', 'channels'].forEach(n => $(`tab-${n}`).classList.toggle('hidden', n !== t.dataset.tab));
+  ['signups', 'builder', 'dashboard', 'channels'].forEach(n => $(`tab-${n}`).classList.toggle('hidden', n !== t.dataset.tab));
+  if (t.dataset.tab === 'signups') loadSignups();
   if (t.dataset.tab === 'dashboard' && !dash.loaded) setPeriod('7');
   if (t.dataset.tab === 'channels') renderManage();
 });
@@ -599,6 +653,149 @@ $('crForm').onsubmit = async e => {
     await api('/api/admin/channels', { method: 'POST', body: { kind: 'crew', code: $('crCode').value.trim().toLowerCase(), name: $('crName').value } });
     e.target.reset(); await loadMeta(); renderManage(); toast('CL을 추가했어요');
   } catch (err) { $('crErr').textContent = errText(err.message); }
+};
+
+/* ==========================================================
+   신청자 탭
+   📌 수정 포인트 ④ 처리 상태 이름 / 지원 수준 요약 규칙
+   ========================================================== */
+const HANDLING = { new: '신규', contacted: '연락 완료', in_progress: '진행 중', done: '완료', cancelled: '취소' };
+function supportSummary(s) {
+  const out = [];
+  if (s.want_setup) out.push('직접 세팅 희망');
+  if (s.level === '처음') out.push('입문 행사 같이 안내');
+  if (s.level === '잘 씀') out.push('심화 버전');
+  if (s.usage === '아무도 안 씀') out.push('제작+온보딩');
+  if (s.usage === '몇 명만 씀') out.push('템플릿+가이드');
+  if (s.usage === '다 같이 씀') out.push('고도화');
+  if (s.track === '운영진·멤버' && /^O/.test(s.result_code || '')) out.push('대표 연결 필요');
+  if (s.result_code === 'P4') out.push('행사 안내 (행사 없으면 대기 명단)');
+  if (s.role) out.push(`역할: ${s.role}`);
+  return out.join(' · ') || '—';
+}
+const routeOf = s => s.utm_source ? [s.utm_source, s.utm_medium, s.utm_content].filter(Boolean).join(' / ')
+  : (s.referrer_host ? `링크 없이 · ${s.referrer_host}` : '직접 방문');
+const kstStr = iso => { const d = new Date(new Date(iso).getTime() + 9 * 3600e3); return d.toISOString().slice(0, 16).replace('T', ' '); };
+const kstDay = iso => new Date(new Date(iso).getTime() + 9 * 3600e3).toISOString().slice(0, 10);
+
+const sg = { rows: [] };
+async function loadSignups() {
+  try {
+    const d = await api('/api/admin/signups');
+    sg.rows = d.signups;
+    fillSignupFilters(); renderSignups();
+  } catch (e) { $('sgCount').textContent = errText(e.message); }
+}
+function fillSignupFilters() {
+  const keep = id => $(id).value;
+  const opts = (id, first, values) => { const v = keep(id); $(id).innerHTML = `<option value="">${first}</option>` + values.map(([val, label]) => `<option value="${esc(val)}">${esc(label)}</option>`).join(''); $(id).value = v; };
+  opts('fStatus', '처리 상태 전체', Object.entries(HANDLING));
+  const codes = [...new Map(sg.rows.map(s => [s.result_code, `${s.result_code} ${s.result_name || ''}`])).entries()].filter(([c]) => c).sort();
+  opts('fCode', '결과 전체', codes);
+  opts('fTrack', '트랙 전체', [...new Set(sg.rows.map(s => s.track).filter(Boolean))].map(t => [t, t]));
+  opts('fSource', '유입 경로 전체', [...[...new Set(sg.rows.map(s => s.utm_source).filter(Boolean))].sort().map(v => [v, v]), ['__none', '(UTM 없음)']]);
+}
+function filteredSignups() {
+  const st = $('fStatus').value, code = $('fCode').value, tr = $('fTrack').value, mk = $('fMkt').value, src = $('fSource').value;
+  const q = $('fQ').value.trim().replace(/-/g, '');
+  return sg.rows.filter(s => (!st || s.handling_status === st) && (!code || s.result_code === code) && (!tr || s.track === tr)
+    && (!mk || (mk === 'y') === !!s.consent_marketing)
+    && (!src || (src === '__none' ? !s.utm_source : s.utm_source === src))
+    && (!q || (s.name || '').includes(q) || (s.phone || '').replace(/-/g, '').includes(q)));
+}
+function renderSignups() {
+  const today = kstDay(new Date().toISOString());
+  const now = new Date(Date.now() + 9 * 3600e3); const dow = (now.getUTCDay() + 6) % 7; // 월요일 = 0
+  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dow)).toISOString().slice(0, 10);
+  const all = sg.rows;
+  $('sgTiles').innerHTML = [
+    ['오늘 신청', all.filter(s => kstDay(s.created_at) === today).length, '한국 시간 기준'],
+    ['처리 안 한 신청', all.filter(s => s.handling_status === 'new').length, '처리 상태가 신규'],
+    ['이번 주 신청', all.filter(s => kstDay(s.created_at) >= monday).length, '월요일부터'],
+    ['소식 받기 동의', all.filter(s => s.consent_marketing).length, `전체 ${all.length}명 중`],
+  ].map(([k, v, h]) => `<div class="tile"><div class="k">${k}</div><div class="v">${fmt(v)}</div><div class="s">${h}</div></div>`).join('');
+
+  const rows = filteredSignups();
+  $('sgCount').textContent = `${fmt(rows.length)}명 보는 중 (전체 ${fmt(all.length)}명)`;
+  $('sgTable').innerHTML = `<thead><tr><th>신청일시</th><th>이름 · 전화번호</th><th>결과</th><th>트랙</th><th>지원 수준</th>
+    <th>들어온 경로</th><th>소식</th><th>처리 상태</th><th>메모</th><th></th></tr></thead><tbody>` +
+    (rows.length ? rows.map(s => `<tr data-id="${s.id}">
+      <td data-l="신청일시"><span>${esc(kstStr(s.created_at))}${s.submit_count > 1 ? `<br><span class="pill">재신청 ${s.submit_count - 1}회</span>` : ''}</span></td>
+      <td data-l="이름" class="who"><span><b>${esc(s.name)}</b><a href="tel:${esc(s.phone)}">${esc(s.phone)}</a>
+        <span class="acts"><a href="tel:${esc(s.phone)}">전화</a><a href="sms:${esc(s.phone)}">문자</a></span></span></td>
+      <td data-l="결과"><span><b>${esc(s.result_code || '')}</b> ${esc(s.result_name || '')}
+        ${s.summary ? `<details><summary>답변 보기</summary>${esc(s.summary)}</details>` : ''}</span></td>
+      <td data-l="트랙"><span>${esc(s.track || '—')}</span></td>
+      <td data-l="지원 수준"><span>${esc(supportSummary(s))}</span></td>
+      <td data-l="경로"><span class="mono">${esc(routeOf(s))}</span></td>
+      <td data-l="소식"><span><span class="pill ${s.consent_marketing ? 'yes' : ''}">${s.consent_marketing ? '동의' : '—'}</span></span></td>
+      <td data-l="처리 상태"><select data-st class="${s.handling_status === 'new' ? 'st-new' : ''}">${Object.entries(HANDLING).map(([k, v]) => `<option value="${k}" ${k === s.handling_status ? 'selected' : ''}>${v}</option>`).join('')}</select></td>
+      <td data-l="메모"><input type="text" class="note" data-note maxlength="500" value="${esc(s.admin_note || '')}" placeholder="메모"></td>
+      <td data-l=""><button class="btn small" data-del>삭제</button></td>
+    </tr>`).join('') : `<tr><td colspan="10" class="hint">${all.length ? '조건에 맞는 신청이 없어요.' : '아직 신청이 없어요.'}</td></tr>`) + '</tbody>';
+
+  $('sgTable').querySelectorAll('tr[data-id]').forEach(tr => {
+    const id = tr.dataset.id, row = sg.rows.find(x => x.id === id);
+    tr.querySelector('[data-st]').onchange = async e => {
+      try { const d = await api('/api/admin/signups', { method: 'PATCH', body: { id, handling_status: e.target.value } });
+        Object.assign(row, d.signup); toast('저장했어요'); renderSignups(); }
+      catch (err) { toast(errText(err.message)); e.target.value = row.handling_status; }
+    };
+    tr.querySelector('[data-note]').onchange = async e => {
+      try { const d = await api('/api/admin/signups', { method: 'PATCH', body: { id, admin_note: e.target.value } });
+        Object.assign(row, d.signup); toast('메모를 저장했어요'); }
+      catch (err) { toast(errText(err.message)); }
+    };
+    tr.querySelector('[data-del]').onclick = () => askDelete(row);
+  });
+}
+['fStatus', 'fCode', 'fTrack', 'fMkt', 'fSource'].forEach(id => $(id).onchange = renderSignups);
+$('fQ').oninput = renderSignups;
+$('sgReload').onclick = loadSignups;
+
+// 삭제: 되돌릴 수 없으니 전화번호를 다시 입력해야 지워져요
+function askDelete(row) {
+  const bg = document.createElement('div'); bg.className = 'modal-bg';
+  bg.innerHTML = `<div class="card" role="dialog" aria-label="신청 삭제">
+    <h2>신청을 영구 삭제할까요?</h2>
+    <p class="hint"><b>${esc(row.name)}</b> 님(${esc(row.phone)})의 신청과 처리 기록이 모두 지워지고, <b>되돌릴 수 없어요.</b>
+      신청자가 삭제를 요청했을 때만 지워 주세요.</p>
+    <label class="f"><span>확인을 위해 전화번호를 그대로 입력하세요</span><input type="text" inputmode="numeric" placeholder="${esc(row.phone)}"></label>
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-x>취소</button><button class="btn danger" data-ok disabled>영구 삭제</button></div>
+    <p class="err"></p></div>`;
+  document.body.appendChild(bg);
+  const inp = bg.querySelector('input'), ok = bg.querySelector('[data-ok]');
+  const close = () => bg.remove();
+  bg.querySelector('[data-x]').onclick = close;
+  bg.addEventListener('click', e => { if (e.target === bg) close(); });
+  inp.oninput = () => { ok.disabled = inp.value.replace(/\D/g, '') !== row.phone.replace(/\D/g, ''); };
+  inp.focus();
+  ok.onclick = async () => {
+    ok.disabled = true;
+    try {
+      await api('/api/admin/signups', { method: 'DELETE', body: { id: row.id, phone: row.phone } });
+      sg.rows = sg.rows.filter(x => x.id !== row.id); close(); fillSignupFilters(); renderSignups(); toast('삭제했어요');
+    } catch (e) { bg.querySelector('.err').textContent = errText(e.message); ok.disabled = false; }
+  };
+}
+
+// CSV 내보내기 (엑셀에서 한글이 깨지지 않게 BOM 포함, 수식으로 실행되지 않게 처리)
+function downloadCsv(rows, name) {
+  const cell = v => { let t = String(v ?? ''); if (/^[=+\-@\t\r]/.test(t)) t = `'${t}`; return `"${t.replace(/"/g, '""')}"`; };
+  const head = ['신청일시', '이름', '전화번호', '결과코드', '결과', '트랙', '지원 수준', '답변 요약', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', '소식 받기 동의', '처리 상태', '메모', '재신청 횟수'];
+  const body = rows.map(s => [kstStr(s.created_at), s.name, s.phone, s.result_code, s.result_name, s.track, supportSummary(s), s.summary,
+    s.utm_source, s.utm_medium, s.utm_campaign, s.utm_content, s.consent_marketing ? '동의' : '', HANDLING[s.handling_status] || s.handling_status, s.admin_note, Math.max(0, (s.submit_count || 1) - 1)]);
+  const csv = '﻿' + [head, ...body].map(r => r.map(cell).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `${name}_${kstDay(new Date().toISOString())}.csv`;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+$('csvAll').onclick = () => downloadCsv(filteredSignups(), '신청자');
+$('csvMkt').onclick = () => {
+  const rows = sg.rows.filter(s => s.consent_marketing);
+  if (!rows.length) return toast('소식 받기에 동의한 사람이 아직 없어요');
+  downloadCsv(rows, '소식동의_신청자');
 };
 
 boot();

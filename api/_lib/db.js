@@ -26,6 +26,7 @@ async function call(method, path, body, extraHeaders = {}) {
 }
 
 module.exports = {
+  call,
   rpc: (fn, args) => call('POST', `/rpc/${fn}`, args),
   select: (table, query) => call('GET', `/${table}?${query}`),
   insert: (table, row) => call('POST', `/${table}`, row, { Prefer: 'return=representation' }),
