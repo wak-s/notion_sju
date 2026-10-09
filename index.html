@@ -205,6 +205,9 @@ details.toggle ul { margin: 6px 0 0; padding-left: 26px; color: var(--ink); font
 .consent-detail { font-size: 13px; color: var(--muted); margin: 0 0 6px 28px; }
 .consent-detail summary { cursor: pointer; text-decoration: underline; }
 .consent-detail ul { margin: 6px 0 0; padding-left: 18px; }
+.consent-detail li { margin: 2px 0; }
+.consent.optional { margin-top: 8px; }
+.consent small { display: block; color: var(--muted); font-size: 12px; margin-top: 1px; }
 .apply .btn-primary { width: 100%; margin-top: 10px; }
 .btn-primary:disabled { opacity: .45; cursor: not-allowed; filter: none; }
 
@@ -252,8 +255,9 @@ details.toggle ul { margin: 6px 0 0; padding-left: 26px; color: var(--ink); font
    ========================================================== */
 const CONFIG = {
   SIGNUP_API: '/api/signup',
-  CONSENT_VERSION: 'v1-20261009',
+  CONSENT_VERSION: 'v2-20261009',
   RETENTION: '신청일로부터 1년',
+  CONTACT: '인스타그램 @notion_sju DM',   // 개인정보 문의처 (동의 문구에 들어가요)
 };
 
 /* ==========================================================
@@ -617,18 +621,25 @@ function renderResult() {
           <input id="inPhone" type="tel" inputmode="numeric" autocomplete="tel" maxlength="13" placeholder="010-1234-5678">
           <p class="err" id="phoneErr"></p>
         </label>
+        <!-- 📌 동의 문구: 여기를 고치면 CONFIG.CONSENT_VERSION 도 새 이름으로 바꿔 주세요 -->
         <label class="consent"><input id="inConsent" type="checkbox">
-          <span>(필수) 개인정보 수집·이용에 동의해요</span>
+          <span>(필수) 신청 확인을 위한 개인정보 수집·이용에 동의해요</span>
         </label>
         <details class="consent-detail">
           <summary>자세히 보기</summary>
           <ul>
-            <li>수집 항목: 이름, 전화번호, 테스트 결과와 답변, 방문 경로(어떤 링크로 들어왔는지)</li>
-            <li>이용 목적: 맞춤 템플릿·행사 안내 및 신청 확인 연락</li>
-            <li>보유 기간: ${esc(CONFIG.RETENTION)} (이후 파기)</li>
-            <li>동의하지 않을 수 있으며, 이 경우 신청이 어려워요.</li>
+            <li>수집 항목: 이름, 전화번호, 테스트 결과와 답변, 들어온 경로(어떤 링크로 왔는지)</li>
+            <li>자동 수집: 접속 기기 정보(브라우저 종류), 접속 IP(알아볼 수 없게 바꿔서 저장) — 반복 신청·악용을 막는 데만 써요</li>
+            <li>이용 목적: 신청 확인 연락, 결과에 맞는 템플릿·세팅 지원 제공</li>
+            <li>보유 기간: ${esc(CONFIG.RETENTION)} (이후 바로 파기)</li>
+            <li>보관 위치: 신청 전용 데이터베이스(Supabase, 서울 리전)에 저장되고, 세종이네 노션 캠퍼스 리더만 볼 수 있어요.</li>
+            <li>동의하지 않을 수 있지만, 이 경우 신청이 어려워요. 삭제 요청·문의: ${esc(CONFIG.CONTACT)}</li>
           </ul>
         </details>
+        <label class="consent optional"><input id="inMarketing" type="checkbox">
+          <span>(선택) 다음 행사·노션 소식을 문자로 받아 볼게요
+            <small>체크하지 않아도 신청할 수 있고, 언제든 그만 받을 수 있어요.</small></span>
+        </label>
         <!-- 봇 걸러내기용 숨은 칸 (사람에겐 안 보여요. 지우지 마세요) -->
         <input id="inWebsite" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
                style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
@@ -664,7 +675,8 @@ function renderResult() {
       $err.textContent = '전화번호를 다시 확인해 주세요. (예: 010-1234-5678)';
       return;
     }
-    submitSignup(r, $name.value.trim(), $phone.value, document.getElementById('inWebsite').value);
+    submitSignup(r, $name.value.trim(), $phone.value, document.getElementById('inWebsite').value,
+                 document.getElementById('inMarketing').checked);
   };
 
   document.getElementById('saveBtn').onclick = () => downloadResult(r);
@@ -684,7 +696,7 @@ function formatPhone(v) {
    왼쪽 이름(name, phone …)은 Supabase sju_signups 표의 칸 이름과 같아요.
    칸을 새로 만들려면 표에도 칸을 추가하고, api/signup.js 의 TEXT_FIELDS 에도 넣어야 저장돼요.
    ========================================================== */
-function buildSignupPayload(r, name, phone, website) {
+function buildSignupPayload(r, name, phone, website, marketing) {
   const a = answers;
   const pick = id => (id in a) ? QUESTIONS[id].options[a[id]].short : null;
   return {
@@ -701,6 +713,7 @@ function buildSignupPayload(r, name, phone, website) {
     role: pick('mem_role'),
     consent_privacy: true,
     consent_version: CONFIG.CONSENT_VERSION,
+    consent_marketing: !!marketing,   // (선택) 소식 받기 체크 여부
     ...ATTRIBUTION.utm,
     referrer_host: ATTRIBUTION.referrer_host,
     website, // 숨은 칸 (사람은 비어 있음)
@@ -719,7 +732,7 @@ const SIGNUP_MESSAGES = {
   fallback: '신청이 저장되지 않았어요. 잠시 후 다시 시도해 주세요.',
 };
 
-async function submitSignup(r, name, phone, website) {
+async function submitSignup(r, name, phone, website, marketing) {
   const $apply = document.getElementById('applyBtn');
   const $err = document.getElementById('phoneErr');
   const label = $apply.textContent;
@@ -730,7 +743,7 @@ async function submitSignup(r, name, phone, website) {
     const res = await fetch(CONFIG.SIGNUP_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildSignupPayload(r, name, phone, website)),
+      body: JSON.stringify(buildSignupPayload(r, name, phone, website, marketing)),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) throw new Error(data.error || 'fallback');
