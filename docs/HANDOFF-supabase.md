@@ -106,12 +106,8 @@ SQL 원본: `supabase/migrations/001_init.sql`, `002_upsert_signup.sql`.
 ## DB 추가 (supabase/migrations/003_admin.sql)
 `sju_crews`, `sju_channels.placement`, `sju_links.crew_code / placement`, 함수 `sju_admin_stats(from, to)` — RLS·권한 회수 동일
 
-## 남은 테스트 데이터 (2026-10-09 검증)
-- `sju_links`: `/l/zxxzx6` (오프라인 포스터 QR, cl01_qa-test_261009, 메모 "테스트 링크") — 장부에서 [보관]으로 숨기면 됨
-- `sju_clicks`: 위 링크 클릭 1건
-- `sju_signups`: 이름 `QA테스트`, 전화 `010-0000-0000` 1건
-  지우기: `delete from sju_signups where phone = '010-0000-0000';`
-  (클릭·링크까지 지우려면 `delete from sju_clicks where link_id = (select id from sju_links where short_code = 'zxxzx6');` 후 `delete from sju_links where short_code = 'zxxzx6';`)
+## 남은 테스트 데이터
+없음 — 2026-10-09 검증용 신청 1·링크 1·클릭 1은 시우가 SQL Editor에서 삭제함 (신청·링크·클릭 0건, 채널 8·CL 2 유지)
 
 ## 다음 할 일
 `docs/HANDOFF-admin.md`(CX 요구사항): 어드민에 신청자 목록 화면(처리 상태·메모·필터·CSV·삭제) + 1년 지난 신청 자동 파기
