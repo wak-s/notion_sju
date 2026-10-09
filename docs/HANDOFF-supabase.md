@@ -73,3 +73,45 @@ SQL 원본: `supabase/migrations/001_init.sql`, `002_upsert_signup.sql`.
 3. CL이 신청자를 어디서 볼지: 어드민 목록 화면 / Supabase → 노션 동기화(Make)
 4. GA 이벤트 이름 (테스트 시작 → 결과 → 신청)
 5. 그다음: 단축 링크(`/l/코드`) + 링크 빌더 + 대시보드
+
+---
+
+# 추가: UTM 어드민 (2026-10-09)
+
+주소: `/admin` (공용 아이디·비밀번호 1개, cl01 시우·cl02 민지가 같이 씀)
+로그인 값: Vercel 환경변수 `ADMIN_ID`(Config), `ADMIN_PASSWORD`(Secret) — Production·Preview. 비밀번호를 바꾸면 기존 로그인이 모두 풀림.
+
+## UTM 규칙 (확정)
+- utm_campaign: `sju-test` 고정. 전환(도착해서 하는 행동)이 다른 홍보를 할 때만 새 이름 (예: `sju-event-1104`)
+- utm_content: `CL_게재영역_날짜` 자동 (예: `cl02_cs-dept_261010`)
+- 채널 8개: 스레드 본문/프로필, 인스타 피드/스토리/프로필, 카톡 오픈채팅·단톡, 에브리타임, 오프라인 포스터 QR
+  (카톡·에타·포스터는 게재영역을 링크 만들 때 직접 입력, 영문 소문자·하이픈만)
+
+## 화면 (admin/index.html)
+| 탭 | 내용 |
+|---|---|
+| 링크 빌더 | CL·채널·게재영역 → 짧은 링크/긴 링크/QR. 같은 조합이면 기존 링크 반환. 장부(누적 클릭·신청·전환율, 보관) |
+| 대시보드 | 기간(오늘/7일/30일/전체/직접), CL·채널 필터, 요약 타일, 일별 막대, 채널·CL·게재영역·소재별 표 |
+| 채널·CL 관리 | 채널 추가·숨기기·이름/게재영역 수정(source·medium 수정 불가), CL 추가·이름 수정 |
+
+수정 포인트: admin/index.html ① 색·글꼴 ② 오류 문구 ③ 일별 차트 / api/_lib/http.js B 로그인 유지 시간(12시간) / api/admin/auth.js C 로그인 시도 제한 / api/admin/links.js D 기본 캠페인
+
+## 단축 링크 `/l/코드` (api/l.js)
+클릭 +1(원자적) → 302 + no-store → `/?utm_...`. 봇(카톡·스레드 미리보기 등)·HEAD는 안 셈. 모르는 코드는 `/?utm_source=short-link&utm_medium=unknown`. 항상 이 사이트 안으로만 이동.
+주의: 링크는 **운영 주소(notion-sju.vercel.app)의 /admin에서 만들어야** 짧은 링크가 운영 주소로 나옴(미리보기에서 만들면 미리보기 주소로 표시됨. 장부 자체는 같은 DB).
+
+## API (전부 로그인 필요, 개인정보 없이 집계만)
+`GET/POST/DELETE /api/admin/auth`, `GET/POST/PATCH /api/admin/channels`, `GET/POST/PATCH /api/admin/links`, `GET /api/admin/stats?from=&to=`
+
+## DB 추가 (supabase/migrations/003_admin.sql)
+`sju_crews`, `sju_channels.placement`, `sju_links.crew_code / placement`, 함수 `sju_admin_stats(from, to)` — RLS·권한 회수 동일
+
+## 남은 테스트 데이터 (2026-10-09 검증)
+- `sju_links`: `/l/zxxzx6` (오프라인 포스터 QR, cl01_qa-test_261009, 메모 "테스트 링크") — 장부에서 [보관]으로 숨기면 됨
+- `sju_clicks`: 위 링크 클릭 1건
+- `sju_signups`: 이름 `QA테스트`, 전화 `010-0000-0000` 1건
+  지우기: `delete from sju_signups where phone = '010-0000-0000';`
+  (클릭·링크까지 지우려면 `delete from sju_clicks where link_id = (select id from sju_links where short_code = 'zxxzx6');` 후 `delete from sju_links where short_code = 'zxxzx6';`)
+
+## 다음 할 일
+`docs/HANDOFF-admin.md`(CX 요구사항): 어드민에 신청자 목록 화면(처리 상태·메모·필터·CSV·삭제) + 1년 지난 신청 자동 파기
